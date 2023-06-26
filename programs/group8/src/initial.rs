@@ -1,16 +1,11 @@
-use anchor_lang::prelude::*;
-use spl_token_nft::state::Nft;
-use spl_token_nft::instruction::transfer;
-use spl_token::state::Account as TokenAccount;
-use spl_token::instruction::{initialize_account, initialize_mint, mint_to};
-use std::str::FromStr;
+
 
 #[program]
 pub mod fractional_nft {
     use super::*;
 
     #[state]
-    pub struct FractionalNFT {
+    pub struct FractionalNFT<'info> {
         pub nft: Box<Account<Nft>>,
         pub nft_owner: Box<Account<Signer>>,
         pub fractional_mint: Box<Account<Mint>>,
