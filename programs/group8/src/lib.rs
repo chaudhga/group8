@@ -1,125 +1,149 @@
-//#![feature(trivial_bounds)]
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::program_error::ProgramError;
-
-// use mpl_token_metadata::state::Mint;
-// use spl_token_nft::instruction::transfer;
-// use mpl_token_metadata::state::Account;
-// use spl_token::instruction::{initialize_account, initialize_mint, mint_to};
-// use std::str::FromStr;
+use anchor_lang::solana_program::pubkey::Pubkey;
+// use mpl_token_metadata::state::Metadata;
+// use mpl_token_metadata::instruction::Transfer;
+use anchor_spl::token::{TokenAccount, Mint, Token};
+use anchor_spl::token::spl_token::{instruction::transfer, self};
+use anchor_spl::associated_token;
 // use anchor_lang::system_program::ID;
+// use solana_program::account_info::{Account, next_account_info};
+use anchor_lang::solana_program::{/* entrypoint::ProgramResult, */ self};
+use anchor_lang::solana_program::system_program;
 
 declare_id!("25XSG7yVjFTQhcantbjHU4Auw8gmtDk1CdqPqjGwMLTm");
 
 #[derive(Accounts)]
 pub struct LockNFT<'info> {
     #[account(mut)]
-    sender: Account<'info, Signer>,
-    // #[account(mut)]
-    // program_account: Account<'info>,
-    #[account(mut, constraint = nft_acc.owner == *sender.key, close = nft_acc == sender)]
-    nft_acc: Account<'info, NFT>,
-    #[account(seeds = [b"lock_nft".as_ref(), nft_acc.to_account_info().key.as_ref()], bump)]
-    authority: Signer<'info>,
-    rent: Sysvar<'info, Rent>,
-}
-
-#[derive(Accounts)]
-pub struct NFT<'info> {
-    #[account(constraint = nft_acc.owner == *sender.key, close = nft_acc == sender)]
-    nft_acc: Account<'info, NFT>,
-    sender: Account<'info, Signer>
-}
-
-#[account]
-pub struct NFT {
-    pub owner: Pubkey,
-    pub mint: Pubkey,
-    pub token: Pubkey
-}
-
-#[derive(Accounts)]
-pub struct SaveNftAddress<'info> {
+    pub sender: Signer<'info>,
     #[account(mut)]
-    nft: Account<'info, NFT>,
-    authority: Signer<'info>,
-}
+    pub sender_token_account: Account<'info, TokenAccount>,
+    
+    // #[account(mut)]
+    // pub to: Account<'info, Signer>,
+    // TODO add checks if NFT been ever distributed already with primary sell
+    // TODO add metaplex stuff so royalties, authorities and other stuff would be taked into account too
+    // #[account(mut)]
+    // pub metadata: Account<'info, Metadata>,
 
-#[derive(Accounts)]
-pub struct ApproveNftTransfer<'info> {
-    #[account(mut, constraint = nft_acc.owner == *sender.key, close = nft_acc == sender)]
-    nft_acc: Account<'info, NFT>,
-    #[account(seeds = [b"lock_nft".as_ref(), nft_acc.to_account_info().key.as_ref()], bump)]
-    authority: Signer<'info>,
+    #[account(
+        init, 
+        // just a reasonable top estimate
+        space = 100,
+        payer = sender, 
+        seeds = [
+            b"lock_nft".as_ref(), 
+            &sender_token_account.mint.to_bytes()[..]
+        ], 
+        bump
+    )]
+    pub nft: UncheckedAccount<'info>,
+    #[account(mut)]
+    pub locking_token_account: Signer<'info>,
+    // #[account(mut)]
+    pub program: Signer<'info>,
+    // pub program_authority: Account<'info, Signer>,
+    pub token_program: Program<'info, Token>,
+    pub rent: Sysvar<'info, Rent>,
+    pub system_program: Program<'info, System>,
+    pub mint: Account<'info, Mint>,
 }
 
 #[program]
-pub mod fractional_nft {
+pub mod my_program {
+    // use core::slice::SlicePattern;
     use super::*;
 
-    pub fn lock_nft(&mut self, ctx: Context<NFT_to_lock>) -> ProgramResult {
-        // descriptive errors are welcome to substitute the check if the NFT is approved
-        // TODO add metaplex calls
-        // TODO develop logic so address from which NFT is transferred could differ from multisig
-        // check that owner is program_id
+    pub fn lock_nft(ctx: Context<LockNFT>) -> /* Program */Result<()> {
+        let cpi_program = ctx.accounts.token_program.to_account_info().clone();
+        let preseeds = [
+            b"lock_nft",
+            &ctx.accounts.sender_token_account.mint.to_bytes()[..],
+        ];
+        let seeds = [
+            preseeds.as_slice(),
+        ];
+        let cpi_ctx: CpiContext<'_, '_, '_, '_, associated_token::Create> = 
+            CpiContext::new_with_signer(
+                cpi_program, 
+                // TOSO see relevant comments below in `transfer` invokation
+                associated_token::Create {
+                    payer: ctx.accounts.sender.to_account_info(), 
+                    associated_token: ctx.accounts.locking_token_account.to_account_info(), 
+                    authority: ctx.accounts.sender.to_account_info(), 
+                    mint: ctx.accounts.mint.to_account_info(), 
+                    system_program: ctx.accounts.system_program.to_account_info(), 
+                    token_program: ctx.accounts.token_program.to_account_info()
+                },
+                seeds.as_slice()
+            );
+            // ).with_signer(&[&[&ctx.accounts.program.to_account_info().key.to_bytes()]]);
 
-/* 
-Give me an Anchor `fn` which transfer approved metaplex NFT into the program, descriptive errors are welcome to substitute the check if the NFT is approved. Through purpose of the `fn` is to save the address from which the NFT was transferred. Last time your code got cut off.
- */
+        // Initialize the SPL token lock account
+        // let token_lock_data = &mut ctx.accounts.token_lock.try_borrow_mut_data()?;
+        // let token_lock = spl_token_lock::TokenLock {
+        //     bump,
+        //     owner: *ctx.accounts.program.to_account_info().key,
+        //     mint: *ctx.accounts.token_account.mint.key,
+        //     token_account: *ctx.accounts.token_account.key,
+        // };
+        // spl_token_lock::TokenLock::pack(token_lock, token_lock_data)?;
 
-        // Transfer the NFT to the multisig
-        let cpi_program = ctx.accounts.nft_program.clone();
-        let cpi_accounts = Transfer {
-            from: ctx.accounts.from.clone(),
-            to: ctx.accounts.multisig.to_account_info().clone(),
-            authority: ctx.accounts.from.clone(),
-        };
-        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-        nft_program::transfer(cpi_ctx, ctx.accounts.nft_id)?;
+        let associated_token_address = associated_token::get_associated_token_address(
+            &ctx.accounts.program.key,
+            // &cpi_ctx.accounts.token_program.key,
+            &ctx.accounts.nft.key,
+        );
+        if &associated_token_address != ctx.accounts.locking_token_account.to_account_info().key {
+            // msg!("client asks for wrong token receiver!");
+            // ~~TODO make a resonable error (`struct`?)~~
+            return err!(MyError::AssocAccDonotMatch);
+        }
+        // TODO close the account on NFT redeem.
+        // TODO set the owner the program, and think if there's possible scheming when it's not
+        let create_associated_token_account = associated_token::create(
+            // &ctx.accounts.sender.key(),
+            // &associated_token_address,
+            // &ctx.accounts.nft.key,
+            // &spl_token::id(),
+            cpi_ctx
+        );
+        
+        // solana_program::program::invoke(
+        //     &create_associated_token_account,
+        //     &[
+        //         ctx.accounts.sender.to_account_info(),
+        //         ctx.accounts.program.to_account_info(),
+        //         ctx.accounts.locking_token_account.to_account_info(),
+        //         ctx.accounts.token_program.clone(),
+        //     ],
+        // )?;        
 
-        // Initialize the fractional mint
-        let fractional_mint_account = self.fractional_mint.to_account_info();
-        let mint_authority = ctx.accounts.from.to_account_info();
-        let cpi_accounts = mint::InitializeMint {
-            mint: fractional_mint_account.clone(),
-            mint_authority: mint_authority.clone(),
-            rent: Rent::from_account_info(&ctx.accounts.sysvar_rent)?,
-        };
-        let cpi_program = ctx.accounts.token_program.to_account_info();
-        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-        mint::initialize_mint(cpi_ctx)?;
-
-        // Create the token account for the fractional NFT
-        let fractional_token_account_info = self.fractional_token_account.to_account_info();
-        let cpi_accounts = initialize_account(
-            &ctx.accounts.token_program.to_account_info(),
-            fractional_token_account_info.clone(),
-            &fractional_mint_account.key(),
-            &ctx.accounts.from.key(),
-        )?;
-        let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
-        initialize_account(cpi_ctx)?;
-
-        // Mint all of the fractional tokens to the multisig
-        let cpi_accounts = mint::MintTo {
-            mint: self.fractional_mint.to_account_info().clone(),
-            to: self.multisig.to_account_info().clone(),
-            authority: mint_authority.clone(),
-            amount: ctx.accounts.nft_amount,
-        };
-        let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
-        mint::mint_to(cpi_ctx)?;
+        // Transfer the SPL token to the program-controlled account
+        //      we **assume** here that NFT is approved to transfer
+        //      TODO add approve instruction/function OR maybe better add in this one
+        // let cpi_accounts = Transfer {
+        //     from: ctx.accounts.sender_token_account.to_account_info().clone(),
+        //     to: ctx.accounts.locking_token_account.to_account_info().clone(),
+        //     authority: ctx.accounts.from.to_account_info().clone(),
+        // };
+        // In transfer we used the account we just created. *If client derived it wrong, tx will fail*
+        transfer(
+            &ctx.accounts.token_program.to_account_info().clone().key(), 
+            &associated_token_address, 
+            &ctx.accounts.nft.to_account_info().clone().key(), 
+            // TODO generalize the whole thing to the case when authority isn't `sender`
+            &ctx.accounts.sender.to_account_info().clone().key(), 
+            &[&ctx.accounts.sender.to_account_info().clone().key()], 
+            1
+        );
 
         Ok(())
     }
-}
 
-#[state]
-pub struct FractionalNFT<'info> {
-    pub nft: Box<Account<Nft>>,
-    pub nft_owner: Box<Account<Signer>>,
-    pub fractional_mint: Box<Account<Mint>>,
-    pub fractional_token_account: Box<Account<TokenAccount>>,
-    pub multisig: Box<Account<Signer>>,
-    pub token_program: Account<'info, TokenProgram>,
+    #[error_code]
+    pub enum MyError {
+        #[msg("client asks for wrong token receiver!")]
+        AssocAccDonotMatch
+    }
 }

@@ -17,3 +17,7 @@ default = []
 
 [dependencies]
 anchor-lang = "0.28.0"
+# spl-token = "*"
+# solana-program = "*"
+# spl-associated-token-account = "*"
+anchor-spl = "*"
