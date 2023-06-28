@@ -6,3 +6,10 @@ target
 node_modules
 test-ledger
 .yarn
+.yarnrc.yml
+.gitignore
+Anchor.toml
+package-lock.json
+yarn.lock
+Anchor.toml
+Anchor.toml
