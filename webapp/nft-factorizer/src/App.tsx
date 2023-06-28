@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './App.css';
 import { Connection, PublicKey, Keypair, SystemProgram } from '@solana/web3.js';
-import { Program, Provider, web3 } from '@coral-xyz/anchor';
+import { web3 } from '@coral-xyz/anchor';
 import idl from './group8.json';
 
 function App() {
