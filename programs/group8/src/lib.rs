@@ -3,14 +3,12 @@ use anchor_lang::solana_program::pubkey::Pubkey;
 // use mpl_token_metadata::state::Metadata;
 // use mpl_token_metadata::instruction::Transfer;
 use anchor_spl::token::{TokenAccount, Mint, Token};
-use anchor_spl::token::spl_token::{instruction::transfer, self};
+use anchor_spl::token::spl_token::{instruction::transfer};
 use anchor_spl::associated_token;
 // use anchor_lang::system_program::ID;
 // use solana_program::account_info::{Account, next_account_info};
-use anchor_lang::solana_program::{/* entrypoint::ProgramResult, */ self};
-use anchor_lang::solana_program::system_program;
 
-declare_id!("25XSG7yVjFTQhcantbjHU4Auw8gmtDk1CdqPqjGwMLTm");
+declare_id!("22ekZxqp1gGqWVmbKdJegrzvJR4E8sLsQRcVZGjoMwvC");
 
 #[derive(Accounts)]
 pub struct LockNFT<'info> {
@@ -37,6 +35,7 @@ pub struct LockNFT<'info> {
         ], 
         bump
     )]
+    /// CHECK: TODO why no checks through types are necessary
     pub nft: UncheckedAccount<'info>,
     #[account(mut)]
     pub locking_token_account: Signer<'info>,
@@ -50,9 +49,14 @@ pub struct LockNFT<'info> {
 }
 
 #[program]
-pub mod my_program {
+pub mod group8 {
     // use core::slice::SlicePattern;
     use super::*;
+
+    pub fn initialize(_ctx: Context<Initialize>) -> Result<()> {
+        // Initialize the SPL token lock account
+        Ok(())
+    }
 
     pub fn lock_nft(ctx: Context<LockNFT>) -> /* Program */Result<()> {
         let cpi_program = ctx.accounts.token_program.to_account_info().clone();
@@ -79,7 +83,8 @@ pub mod my_program {
             );
             // ).with_signer(&[&[&ctx.accounts.program.to_account_info().key.to_bytes()]]);
 
-        // Initialize the SPL token lock account
+
+    
         // let token_lock_data = &mut ctx.accounts.token_lock.try_borrow_mut_data()?;
         // let token_lock = spl_token_lock::TokenLock {
         //     bump,
@@ -101,7 +106,7 @@ pub mod my_program {
         }
         // TODO close the account on NFT redeem.
         // TODO set the owner the program, and think if there's possible scheming when it's not
-        let create_associated_token_account = associated_token::create(
+        let _create_associated_token_account = associated_token::create(
             // &ctx.accounts.sender.key(),
             // &associated_token_address,
             // &ctx.accounts.nft.key,
@@ -128,7 +133,7 @@ pub mod my_program {
         //     authority: ctx.accounts.from.to_account_info().clone(),
         // };
         // In transfer we used the account we just created. *If client derived it wrong, tx will fail*
-        transfer(
+        let _ = transfer(
             &ctx.accounts.token_program.to_account_info().clone().key(), 
             &associated_token_address, 
             &ctx.accounts.nft.to_account_info().clone().key(), 
@@ -145,5 +150,9 @@ pub mod my_program {
     pub enum MyError {
         #[msg("client asks for wrong token receiver!")]
         AssocAccDonotMatch
+    }
+    #[derive(Accounts)]
+    pub struct Initialize {
+        // Your account definitions here, if necessary
     }
 }
