@@ -8,7 +8,7 @@ use anchor_spl::associated_token;
 // use anchor_lang::system_program::ID;
 // use solana_program::account_info::{Account, next_account_info};
 
-declare_id!("22ekZxqp1gGqWVmbKdJegrzvJR4E8sLsQRcVZGjoMwvC");
+declare_id!("25XSG7yVjFTQhcantbjHU4Auw8gmtDk1CdqPqjGwMLTm");
 
 #[derive(Accounts)]
 pub struct LockNFT<'info> {
