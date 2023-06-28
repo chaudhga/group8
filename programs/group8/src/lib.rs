@@ -2,61 +2,25 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 // use mpl_token_metadata::state::Metadata;
 // use mpl_token_metadata::instruction::Transfer;
-use anchor_spl::token::{TokenAccount, Mint, Token};
+use anchor_spl::token::{TokenAccount, Mint, Token, MintTo};
 use anchor_spl::token::spl_token::{instruction::transfer};
 use anchor_spl::associated_token;
 // use anchor_lang::system_program::ID;
 // use solana_program::account_info::{Account, next_account_info};
 
-declare_id!("25XSG7yVjFTQhcantbjHU4Auw8gmtDk1CdqPqjGwMLTm");
-
-#[derive(Accounts)]
-pub struct LockNFT<'info> {
-    #[account(mut)]
-    pub sender: Signer<'info>,
-    #[account(mut)]
-    pub sender_token_account: Account<'info, TokenAccount>,
-    
-    // #[account(mut)]
-    // pub to: Account<'info, Signer>,
-    // TODO add checks if NFT been ever distributed already with primary sell
-    // TODO add metaplex stuff so royalties, authorities and other stuff would be taked into account too
-    // #[account(mut)]
-    // pub metadata: Account<'info, Metadata>,
-
-    #[account(
-        init, 
-        // just a reasonable top estimate
-        space = 100,
-        payer = sender, 
-        seeds = [
-            b"lock_nft".as_ref(), 
-            &sender_token_account.mint.to_bytes()[..]
-        ], 
-        bump
-    )]
-    /// CHECK: TODO why no checks through types are necessary
-    pub nft: UncheckedAccount<'info>,
-    #[account(mut)]
-    pub locking_token_account: Signer<'info>,
-    // #[account(mut)]
-    pub program: Signer<'info>,
-    // pub program_authority: Account<'info, Signer>,
-    pub token_program: Program<'info, Token>,
-    pub rent: Sysvar<'info, Rent>,
-    pub system_program: Program<'info, System>,
-    pub mint: Account<'info, Mint>,
-}
+declare_id!("22ekZxqp1gGqWVmbKdJegrzvJR4E8sLsQRcVZGjoMwvC");
 
 #[program]
 pub mod group8 {
     // use core::slice::SlicePattern;
     use super::*;
 
+
     pub fn initialize(_ctx: Context<Initialize>) -> Result<()> {
         // Initialize the SPL token lock account
         Ok(())
     }
+
 
     pub fn lock_nft(ctx: Context<LockNFT>) -> /* Program */Result<()> {
         let cpi_program = ctx.accounts.token_program.to_account_info().clone();
@@ -146,13 +110,89 @@ pub mod group8 {
         Ok(())
     }
 
+
+    pub fn fractionalize_nft(ctx: Context<FractionalizeNFT>, fractional_amount: u64) -> Result<()> {
+        let cpi_program = ctx.accounts.token_program.to_account_info().clone();
+
+        // Check if the NFT is locked in the program-controlled account
+        if ctx.accounts.locked_nft.amount != 1 {
+            return err!(MyError::NftNotLocked);
+        }
+
+        // Mint fractional tokens to the recipient
+        let cpi_accounts = MintTo {
+            mint: ctx.accounts.fractional_mint.to_account_info().clone(),
+            to: ctx.accounts.recipient.to_account_info().clone(),
+            authority: ctx.accounts.sender.to_account_info().clone(),
+        };
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        anchor_spl::token::mint_to(cpi_ctx, fractional_amount)?;
+
+        Ok(())
+    }
+
     #[error_code]
     pub enum MyError {
         #[msg("client asks for wrong token receiver!")]
-        AssocAccDonotMatch
+        AssocAccDonotMatch,
+
+        #[msg("NFT is not locked in the program-controlled account.")]
+        NftNotLocked,
     }
-    #[derive(Accounts)]
-    pub struct Initialize {
-        // Your account definitions here, if necessary
-    }
+
+}
+
+#[derive(Accounts)]
+pub struct Initialize {
+    // Your account definitions here, if necessary
+}
+
+#[derive(Accounts)]
+pub struct LockNFT<'info> {
+    #[account(mut)]
+    pub sender: Signer<'info>,
+    #[account(mut)]
+    pub sender_token_account: Account<'info, TokenAccount>,
+    
+    // #[account(mut)]
+    // pub to: Account<'info, Signer>,
+    // TODO add checks if NFT been ever distributed already with primary sell
+    // TODO add metaplex stuff so royalties, authorities and other stuff would be taked into account too
+    // #[account(mut)]
+    // pub metadata: Account<'info, Metadata>,
+
+    #[account(
+        init, 
+        // just a reasonable top estimate
+        space = 100,
+        payer = sender, 
+        seeds = [
+            b"lock_nft".as_ref(), 
+            &sender_token_account.mint.to_bytes()[..]
+        ], 
+        bump
+    )]
+    /// CHECK: TODO 
+    pub nft: UncheckedAccount<'info>,
+    #[account(mut)]
+    pub locking_token_account: Signer<'info>,
+    // #[account(mut)]
+    pub program: Signer<'info>,
+    // pub program_authority: Account<'info, Signer>,
+    pub token_program: Program<'info, Token>,
+    pub rent: Sysvar<'info, Rent>,
+    pub system_program: Program<'info, System>,
+    pub mint: Account<'info, Mint>,
+}
+
+#[derive(Accounts)]
+pub struct FractionalizeNFT<'info> {
+    #[account(mut)]
+    pub sender: Signer<'info>,
+    #[account(mut)]
+    pub locked_nft: Account<'info, TokenAccount>,
+    pub fractional_mint: Account<'info, Mint>,
+    #[account(mut)]
+    pub recipient: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
 }

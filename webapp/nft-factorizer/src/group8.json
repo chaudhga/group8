@@ -1,0 +1,113 @@
+{
+  "version": "0.1.0",
+  "name": "group8",
+  "instructions": [
+    {
+      "name": "initialize",
+      "accounts": [],
+      "args": []
+    },
+    {
+      "name": "lockNft",
+      "accounts": [
+        {
+          "name": "sender",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "senderTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "nft",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lockingTokenAccount",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "program",
+          "isMut": false,
+          "isSigner": true
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "rent",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "mint",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "fractionalizeNft",
+      "accounts": [
+        {
+          "name": "sender",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "lockedNft",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "fractionalMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "recipient",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "fractionalAmount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "AssocAccDonotMatch",
+      "msg": "client asks for wrong token receiver!"
+    },
+    {
+      "code": 6001,
+      "name": "NftNotLocked",
+      "msg": "NFT is not locked in the program-controlled account."
+    }
+  ],
+  "metadata": {
+    "address": "22ekZxqp1gGqWVmbKdJegrzvJR4E8sLsQRcVZGjoMwvC"
+  }
+}
