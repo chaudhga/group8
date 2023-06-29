@@ -5,13 +5,55 @@ import { web3 } from '@coral-xyz/anchor';
 import idl from './group8.json';
 
 function App() {
-  const [programIdInput, setProgramIdInput] = useState('GVyKhCt25xvgXbjGyGq8WRjPbvUD1TToyyQPpRYZp8wa');
-  const [networkInput, setNetworkInput] = useState('https://api.devnet.solana.com');
+  const defaultProgramId = 'GVyKhCt25xvgXbjGyGq8WRjPbvUD1TToyyQPpRYZp8wa';
+  const defaultNetwork = 'https://api.devnet.solana.com';
+  const [programIdInput, setProgramIdInput] = useState(defaultProgramId);
+  const [networkInput, setNetworkInput] = useState(defaultNetwork);
   const [nftInput, setNftInput] = useState('');
   const [result, setResult] = useState('');
 
   const testLockNFT = async (programId: string, network: string, nft: PublicKey) => {
-    // ... (rest of the code)
+    const anchor = require("@coral-xyz/anchor");
+
+    // Connection to the specified network
+    const connection = new Connection(network, 'confirmed');
+    const provider = new anchor.AnchorProvider(connection, {
+      preflightCommitment: 'processed',
+    }, {});
+
+    // Load the program
+    const programIdPublicKey = new PublicKey(programId);
+    const program = new anchor.Program(idl, programIdPublicKey, provider);
+
+    // Required input accounts
+    const sender = Keypair.generate();
+    const senderTokenAccount = Keypair.generate();
+    const mint = Keypair.generate();
+    const lockingTokenAccount = Keypair.generate();
+    const programAccount = Keypair.generate();
+
+    // lockNFT function call
+    try {
+      await program.rpc.lockNFT({
+        accounts: {
+          sender: sender.publicKey,
+          senderTokenAccount: senderTokenAccount.publicKey,
+          nft: nft,
+          lockingTokenAccount: lockingTokenAccount.publicKey,
+          program: programAccount.publicKey,
+          tokenProgram: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+          rent: web3.SYSVAR_RENT_PUBKEY,
+          systemProgram: SystemProgram.programId,
+          mint: mint.publicKey,
+        },
+        signers: [sender, senderTokenAccount, mint, lockingTokenAccount, programAccount],
+      });
+
+      setResult('NFT locked successfully!');
+    } catch (error) {
+      console.error('Error locking NFT:', error);
+      setResult('Failed to lock NFT.');
+    }
   };
 
   const onSubmit = () => {
@@ -21,7 +63,6 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>LockNFT Test</h1>
         <div>
           <label htmlFor="programIdInput">Program ID:</label>
           <input
@@ -32,11 +73,11 @@ function App() {
         </div>
         <div>
           <label htmlFor="networkInput">Network:</label>
-          <select id="networkInput" value={networkInput} onChange={(e) => setNetworkInput(e.target.value)}>
-            <option value="https://api.devnet.solana.com">Devnet</option>
-            <option value="https://api.testnet.solana.com">Testnet</option>
-            <option value="https://api.mainnet-beta.solana.com">Mainnet Beta</option>
-          </select>
+          <input
+            id="networkInput"
+            value={networkInput}
+            onChange={(e) => setNetworkInput(e.target.value)}
+          />
         </div>
         <div>
           <label htmlFor="nftInput">NFT Public Key:</label>
@@ -48,14 +89,6 @@ function App() {
         </div>
         <button onClick={onSubmit}>Run LockNFT Test</button>
         <div>{result}</div>
-        <div className="instructions">
-          <h2>Instructions to create NFT Public Key for testing:</h2>
-          <ol>
-            <li>Create an NFT using a tool like Solana's Metaplex.</li>
-            <li>After creating the NFT, you will receive a public key representing the NFT.</li>
-            <li>Copy the public key and paste it into the "NFT Public Key" field above.</li>
-          </ol>
-        </div>
       </header>
     </div>
   );
