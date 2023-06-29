@@ -52,7 +52,8 @@ function App() {
       setResult('NFT locked successfully!');
     } catch (error) {
       console.error('Error locking NFT:', error);
-      setResult('Failed to lock NFT.');
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occured.';
+      setResult('Failed to lock NFT. Error: ${errorMessage}')
     }
   };
 
