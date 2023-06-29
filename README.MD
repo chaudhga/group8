@@ -1,7 +1,7 @@
 Fractional NFT Program
 ====
 This program allows you to lock a metaplex NFT and issue SPL tokens that represent fractional ownership of the locked NFT. The SPL-tokens can be traded or held by users, and can be redeemed for the underlying NFT by transferring them back to the program's multisig account for the whole supply of SPL-tokens.
-## detailed descr
+## Detailed Description
 The Fractional NFT program allows you to lock a `metaplex` NFT and issue SPL tokens that represent fractional ownership of the locked NFT. You can then distribute the tokens to users, who can trade or hold them as they wish.
 
 When you lock the `metaplex` NFT in the program and issue SPL tokens to represent fractional ownership of the NFT, ownership of the NFT is transferred to a specific account controlled by your program. This account is called the program's "PDA", or program-derived address.
